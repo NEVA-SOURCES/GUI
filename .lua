@@ -1,4 +1,4 @@
--- NEVA HUB - SERVER'
+-- NEVA HUB '
 -- Load Compkiller UI
 local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
 
@@ -468,6 +468,26 @@ local VisualSection = MainTab:DrawSection({
 	Name = "Visual Settings",
 	Position = 'right'
 });
+-------
+
+PlayerSection:AddParagraph({
+    Title = "Join Our Discord!",
+    Content = "Join the NEVA HUB community for updates and support! Click the button below to copy the invite link."
+})
+
+PlayerSection:AddButton({
+    Name = "Copy Discord Link",
+    Callback = function()
+        setclipboard("https://discord.gg/8s8PEXz6XC")
+        Notifier.new({
+            Title = "Link Copied",
+            Content = "Discord invite link has been copied to your clipboard!",
+            Duration = 3,
+            Icon = "rbxassetid://72028320244858"
+        })
+    end,
+}) 
+---
 
 VisualSection:AddToggle({
 	Name = "ESP",
@@ -605,7 +625,7 @@ local InfoSection = WorldTab:DrawSection({
 
 InfoSection:AddParagraph({
 	Title = "NEVA HUB",
-	Content = "Version: 1.0\nCreated by: NEVA  \nUI: Compkiller-UI"
+	Content = "Version: 1.0\nCreated by: NEVA "
 });
 
 -- Settings Tab
