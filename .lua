@@ -171,7 +171,7 @@ function setInvisible(on)
             part.Transparency = on and 1 or 0
         end
     end
-end
+}
 
 local function toggleESP(state)
     espEnabled = state
@@ -497,3 +497,5 @@ end
 -- Initialize Menus
 createTeleportGUI()
 createV1Menu()
+
+
