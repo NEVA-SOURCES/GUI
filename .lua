@@ -1,361 +1,499 @@
+-- CREDITS SERVER V1 YOUTUBE - SERVER
 
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
 
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+-- LOCAL PLAYER & CHARACTER
+local player = Players.LocalPlayer
+local char, root, humanoid
+local antiStunConnection = nil
 
--- Create Notification --
-local Notifier = Compkiller.newNotify();
+local function updateCharacter()
+    char = player.Character or player.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+end
 
--- Create Config Mamager --
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
-});
-
--- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
-
--- Creating Window --
-local Window = Compkiller.new({
-	Name = "NEVA HUB",
-	Keybind = "LeftAlt",
-	Logo = "rbxassetid://72028320244858",
-	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
-	TextSize = 15,
-});
-
--- Notification --
-
-Notifier.new({
-	Title = "Notification",
-	Content = "Thank you for use this script!",
-	Duration = 10,
-	Icon = "rbxassetid://72028320244858"
-});
-
--- Watermark --
-local Watermark = Window:Watermark();
-
-Watermark:AddText({
-	Icon = "user",
-	Text = "4lpaca",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
-task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Compkiller:GetTimeNow());
-	end
+updateCharacter()
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    updateCharacter()
 end)
 
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
+-- SCRIPT-WIDE STATES & VARIABLES
+local gui
+local godConnection, aimConnection
+local espEnabled = false
+local espConnections = {}
+local boostJumpEnabled = false
+local teleportGui
+local isTeleporting = false
 
--- Creating Tab Category --
-Window:DrawCategory({
-	Name = "Farm"
-});
+---------------------------------------------------
+--[[           FUNCTION DEFINITIONS            ]]--
+---------------------------------------------------
 
--- Creating Tab --
-local NormalTab = Window:DrawTab({
-	Name = "Main Tab",
-	Icon = "apple",
-	EnableScrolling = true
-});
+-- TELEPORT / MOVEMENT FUNCTIONS
+local doorPositions = {
+    Vector3.new(-466, -1, 220), Vector3.new(-466, -2, 116), Vector3.new(-466, -2, 8),
+    Vector3.new(-464, -2, -102), Vector3.new(-351, -2, -100), Vector3.new(-354, -2, 5),
+    Vector3.new(-354, -2, 115), Vector3.new(-358, -2, 223)
+}
 
--- Creating Section --
-local NormalSection = NormalTab:DrawSection({
-	Name = "Section1",
-	Position = 'left'	
-});
+local function getNearestDoor()
+    if not root then return nil end
+    local closest, minDist = nil, math.huge
+    for _, door in ipairs(doorPositions) do
+        local dist = (root.Position - door).Magnitude
+        if dist < minDist then
+            minDist = dist
+            closest = door
+        end
+    end
+    return closest
+end
 
-local Toggle = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
----------------------
+local function teleportToSky()
+    if not root then updateCharacter() end
+    local door = getNearestDoor()
+    if door and root then
+        TweenService:Create(root, TweenInfo.new(1.2), { CFrame = CFrame.new(door) }):Play()
+        task.wait(1.3)
+        root.CFrame = root.CFrame + Vector3.new(0, 200, 0)
+    end
+end
 
--- Helper --
-Toggle.Link:AddHelper({
-	Text = "Very cool toggle!"
-})
+local function teleportToGround()
+    if not root then updateCharacter() end
+    if root then
+        root.CFrame = root.CFrame - Vector3.new(0, 50, 0)
+    end
+end
 
+-- COMBAT / PLAYER STATE FUNCTIONS
+function setGodMode(on)
+    if not humanoid then updateCharacter() end
+    if not humanoid then return end
 
+    if on then
+        humanoid.MaxHealth = math.huge
+        humanoid.Health = math.huge
+        if godConnection then godConnection:Disconnect() end
+        godConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            if humanoid.Health < math.huge then
+                humanoid.Health = math.huge
+            end
+        end)
+    else
+        if godConnection then godConnection:Disconnect() end
+        godConnection = nil
+        pcall(function()
+            humanoid.MaxHealth = 100
+            humanoid.Health = 100
+        end)
+    end
+end
 
-NormalSection:AddKeybind({
-	Name = "Keybind",
-	Default = "LeftAlt",
-	Flag = "Keybind_Example",
-	Callback = print,
-});
+local aimbotRange = 100
 
-NormalSection:AddSlider({
-	Name = "Slider",
-	Min = 0,
-	Max = 100,
-	Default = 50,
-	Round = 0,
-	Flag = "Slider_Example",
-	Callback = print
-});
+local function getClosestAimbotTarget()
+    if not root then return nil end
 
+    local closestPlayer, shortestDist = nil, aimbotRange
+    
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local targetHRP = p.Character.HumanoidRootPart
+            local dist = (root.Position - targetHRP.Position).Magnitude
+            
+            if dist < shortestDist then
+                closestPlayer = p
+                shortestDist = dist
+            end
+        end
+    end
+    return closestPlayer
+end
 
+local function toggleAimbot(state)
+    if state then
+        aimConnection = RunService.Heartbeat:Connect(function()
+            local target = getClosestAimbotTarget()
+            if target and target.Character and char and root and humanoid then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetHrp.Position.X, root.Position.Y, targetHrp.Position.Z))
+                end
+            end
+        end)
+    else
+        if aimConnection then
+            aimConnection:Disconnect()
+            aimConnection = nil
+        end
+    end
+end
 
-NormalSection:AddDropdown({
-	Name = "Single Dropdown",
-	Default = "Head",
-	Flag = "Single_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
+UserInputService.JumpRequest:Connect(function()
+    if boostJumpEnabled and humanoid and root then
+        root.AssemblyLinearVelocity = Vector3.new(0, 100, 0)
+        local gravityConn
+        gravityConn = RunService.Stepped:Connect(function()
+            if not char or not root or not humanoid or not boostJumpEnabled then
+                gravityConn:Disconnect()
+                return
+            end
 
-NormalSection:AddDropdown({
-	Name = "Multi Dropdown",
-	Default = {"Head"},
-	Multi = true,
-	Flag = "Multi_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
+            if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+                root.Velocity = Vector3.new(root.Velocity.X, math.clamp(root.Velocity.Y, -20, 150), root.Velocity.Z)
+            elseif humanoid.FloorMaterial ~= Enum.Material.Air then
+                gravityConn:Disconnect()
+            end
+        end)
+    end
+end)
 
-NormalSection:AddButton({
-	Name = "Button",
-	Callback = function()
-		print('PRINT!')
-	end,
-})
+-- VISUALS FUNCTIONS
+function setInvisible(on)
+    if not char then updateCharacter() end
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.Transparency = on and 1 or part.Parent:IsA("Accessory") and part.Parent.Handle.Transparency or 0
+        elseif part:IsA("Decal") then
+            part.Transparency = on and 1 or 0
+        end
+    end
+end
 
-NormalSection:AddParagraph({
-	Title = "Paragraph",
-	Content = "Very cool paragraph\nAll element in this scrtion\nwill be saved to the config!"
-})
+local function toggleESP(state)
+    espEnabled = state
+    if state then
+        local function applyHighlight(character)
+            if not character or character:FindFirstChild("ServerV1ESP") then return end
+            local h = Instance.new("Highlight")
+            h.Name = "ServerV1ESP"
+            h.FillColor = Color3.fromRGB(255, 50, 50)
+            h.OutlineColor = Color3.new(1, 1, 1)
+            h.FillTransparency = 0.5
+            h.OutlineTransparency = 0
+            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            h.Parent = character
+        end
 
-NormalSection:AddTextBox({
-	Name = "Textbox",
-	Placeholder = "Placeholder",
-	Default = "Hello, World",
-	Callback = print
-})
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                applyHighlight(p.Character)
+            end
+        end
+        
+        table.insert(espConnections, Players.PlayerAdded:Connect(function(newP)
+            newP.CharacterAdded:Connect(function(char)
+                if espEnabled then applyHighlight(char) end
+            end)
+        end))
+        
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player then
+                table.insert(espConnections, p.CharacterAdded:Connect(function(char)
+                    if espEnabled then applyHighlight(char) end
+                end))
+            end
+        end
+    else
+        for _, c in ipairs(espConnections) do c:Disconnect() end
+        espConnections = {}
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                local h = p.Character:FindFirstChild("ServerV1ESP")
+                if h then h:Destroy() end
+            end
+        end
+    end
+end
 
-local DrawElements = function(Tab,Position)
-	do
-		local NormalSectionRight = Tab:DrawSection({
-			Name = "Section",
-			Position = Position
-		});
+-- WORLD / SERVER FUNCTIONS
+local function serverHop()
+    local placeId = game.PlaceId
+    local servers = {}
+    local success, response = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    end)
+    if success and response and response.data then
+        for _, server in ipairs(response.data) do
+            if server.playing and server.maxPlayers and server.playing < server.maxPlayers and server.id ~= game.JobId then
+                table.insert(servers, server.id)
+            end
+        end
+    end
+    if #servers > 0 then
+        TeleportService:TeleportToPlaceInstance(placeId, servers[math.random(1, #servers)])
+    else
+        StarterGui:SetCore("SendNotification", { Title = "Server Hop", Text = "No other servers found.", Duration = 3 })
+    end
+end
 
-		local Toggle = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
+---------------------------------------------------
+--[[                       ]]--
+---------------------------------------------------
 
+local function applyRainbowEffect(textLabel)
+    local hue = 0
+    RunService.Heartbeat:Connect(function()
+        hue = (hue + 0.01) % 1
+        textLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    end)
+end
 
-		NormalSectionRight:AddParagraph({
-			Title = "Paragraph",
-			Content = "Very cool paragraph\nAll elements in this section\nwill not be save to the config"
-		})
-	end;
-end;
+-- NEW: Teleport Pop-Up GUI
+local function createTeleportGUI()
+    teleportGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+    teleportGui.Name = "TeleportControl"
+    teleportGui.ResetOnSpawn = false
+    teleportGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    teleportGui.Enabled = false -- Start hidden
 
+    local mainFrame = Instance.new("Frame", teleportGui)
+    mainFrame.Size = UDim2.new(0, 120, 0, 80) -- Smaller frame
+    mainFrame.Position = UDim2.new(0.5, -60, 0.5, -40) -- Centered
+    mainFrame.BackgroundColor3 = Color3.fromRGB(23, 24, 28)
+    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    mainFrame.BorderSizePixel = 1
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    
+    local mainCorner = Instance.new("UICorner", mainFrame)
+    mainCorner.CornerRadius = UDim.new(0, 4)
 
+    local titleBar = Instance.new("TextLabel", mainFrame)
+    titleBar.Size = UDim2.new(1, 0, 0, 25) -- Smaller title bar
+    titleBar.BackgroundColor3 = Color3.fromRGB(15, 16, 20)
+    titleBar.BackgroundTransparency = 0
+    titleBar.Text = "TELEPORTATION"
+    titleBar.Font = Enum.Font.SourceSansBold
+    titleBar.TextSize = 16 -- Smaller text
+    titleBar.TextColor3 = Color3.new(1, 1, 1)
+    titleBar.TextXAlignment = Enum.TextXAlignment.Center
+    applyRainbowEffect(titleBar)
+    
+    local titleCorner = Instance.new("UICorner", titleBar)
+    titleCorner.CornerRadius = UDim.new(0, 4)
 
-Window:DrawCategory({
-	Name = "Misc"
-});
+    local teleportButton = Instance.new("TextButton", mainFrame)
+    teleportButton.Size = UDim2.new(0.8, 0, 0, 30) -- Adjusted size to be 80% width
+    
+    -- This line is corrected to properly center the button horizontally.
+    teleportButton.Position = UDim2.new(0.1, 0, 0, titleBar.Size.Y.Offset + (mainFrame.Size.Y.Offset - titleBar.Size.Y.Offset - teleportButton.Size.Y.Offset) / 2)
+    
+    teleportButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    teleportButton.TextColor3 = Color3.new(1, 1, 1)
+    teleportButton.Font = Enum.Font.SourceSansSemibold
+    teleportButton.TextSize = 14 -- Smaller text
+    teleportButton.Text = "SKY"
+    local btnCorner = Instance.new("UICorner", teleportButton)
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    applyRainbowEffect(teleportButton)
 
-local SettingTab = Window:DrawTab({
-	Icon = "settings-3",
-	Name = "Settings",
-	Type = "Single",
-	EnableScrolling = true
-});
+    teleportButton.MouseButton1Click:Connect(function()
+        isTeleporting = not isTeleporting
+        if isTeleporting then
+            teleportToSky()
+            teleportButton.Text = "GROUND" -- Change text to STOP when active
+            
+        else
+            teleportToGround()
+            teleportButton.Text = "SKY" -- Change text back to START when inactive
+            
+        end
+    end)
+end
 
-local ThemeTab = Window:DrawTab({
-	Icon = "paintbrush",
-	Name = "Themes",
-	Type = "Single"
-});
+local function createV1Menu()
+    if gui then gui:Destroy() end
 
-local Settings = SettingTab:DrawSection({
-	Name = "UI Settings",
-});
+    gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+    gui.Name = "ServerV1Menu"
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-Settings:AddToggle({
-	Name = "Alway Show Frame",
-	Default = false,
-	Callback = function(v)
-		Window.AlwayShowTab = v;
-	end,
-});
+    local mainFrame = Instance.new("Frame", gui)
+    local originalSize = UDim2.new(0, 160, 0, 280) -- Smaller original size
+    mainFrame.Size = originalSize
+    mainFrame.Position = UDim2.new(0.05, 0, 0.5, -140) -- Adjusted position
+    mainFrame.BackgroundColor3 = Color3.fromRGB(23, 24, 28)
+    mainFrame.BackgroundTransparency = 0.3
+    mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
+    mainFrame.BorderSizePixel = 1
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    
+    local mainCorner = Instance.new("UICorner", mainFrame)
+    mainCorner.CornerRadius = UDim.new(0, 4)
 
-Settings:AddColorPicker({
-	Name = "Highlight",
-	Default = Compkiller.Colors.Highlight,
-	Callback = function(v)
-		Compkiller.Colors.Highlight = v;
-		Compkiller:RefreshCurrentColor();
-	end,
-});
+    local titleBar = Instance.new("TextLabel", mainFrame)
+    titleBar.Size = UDim2.new(1, 0, 0, 30) -- Smaller height for title
+    titleBar.BackgroundColor3 = Color3.fromRGB(15, 16, 20)
+    titleBar.BackgroundTransparency = 0
+    titleBar.Text = "Server v1"
+    titleBar.Font = Enum.Font.SourceSansBold
+    titleBar.TextSize = 20 -- Slightly smaller title
+    titleBar.TextColor3 = Color3.new(1, 1, 1)
+    titleBar.TextXAlignment = Enum.TextXAlignment.Center
+    
+    local titleCorner = Instance.new("UICorner", titleBar)
+    titleCorner.CornerRadius = UDim.new(0, 4)
 
-Settings:AddColorPicker({
-	Name = "Toggle Color",
-	Default = Compkiller.Colors.Toggle,
-	Callback = function(v)
-		Compkiller.Colors.Toggle = v;
-		
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+    local contentFrame = Instance.new("ScrollingFrame", mainFrame)
+    contentFrame.Size = UDim2.new(1, -10, 1, -35) -- Adjusted size
+    contentFrame.Position = UDim2.new(0, 5, 0, 30) -- Adjusted position
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.BorderSizePixel = 0
+    contentFrame.ScrollBarThickness = 3
+    contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    local listLayout = Instance.new("UIListLayout", contentFrame)
+    listLayout.Padding = UDim.new(0, 5) -- Reduced padding
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-Settings:AddColorPicker({
-	Name = "Drop Color",
-	Default = Compkiller.Colors.DropColor,
-	Callback = function(v)
-		Compkiller.Colors.DropColor = v;
+    -- MINIMIZE BUTTON
+    local minimized = false
+    local minimizeButton = Instance.new("TextButton", titleBar)
+    minimizeButton.Size = UDim2.new(0, 18, 0, 18) -- Smaller minimize button
+    minimizeButton.Position = UDim2.new(1, -22, 0.5, -9) -- Adjusted position
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    minimizeButton.Text = "–"
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.TextSize = 14 -- Smaller text
+    minimizeButton.TextColor3 = Color3.new(1,1,1)
+    local minimizeCorner = Instance.new("UICorner", minimizeButton)
+    minimizeCorner.CornerRadius = UDim.new(0, 3)
+    
+    minimizeButton.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        contentFrame.Visible = not minimized
+        minimizeButton.Text = minimized and "+" or "–"
+        
+        local targetSize = minimized and UDim2.new(0, 160, 0, 30) or originalSize -- Adjusted for new title bar height
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = targetSize}):Play()
+    end)
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+    applyRainbowEffect(titleBar)
+    
+    local currentLayoutOrder = 1
+    local function createCategory(title)
+        local categoryLabel = Instance.new("TextLabel", contentFrame)
+        categoryLabel.Size = UDim2.new(1, 0, 0, 20) -- Smaller category label
+        categoryLabel.Text = title
+        categoryLabel.Font = Enum.Font.SourceSansBold
+        categoryLabel.TextSize = 15 -- Smaller text
+        categoryLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        categoryLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        categoryLabel.BackgroundTransparency = 0.5
+        categoryLabel.TextXAlignment = Enum.TextXAlignment.Center
+        categoryLabel.LayoutOrder = currentLayoutOrder
+        currentLayoutOrder = currentLayoutOrder + 1
+        
+        local categoryCorner = Instance.new("UICorner", categoryLabel)
+        categoryCorner.CornerRadius = UDim.new(0, 4)
 
-Settings:AddColorPicker({
-	Name = "Risky",
-	Default = Compkiller.Colors.Risky,
-	Callback = function(v)
-		Compkiller.Colors.Risky = v;
+        applyRainbowEffect(categoryLabel)
+        return categoryLabel
+    end
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+    local function createToggleButton(name, parent, callback)
+        local container = Instance.new("Frame", parent)
+        container.Size = UDim2.new(1, 0, 0, 25) -- Smaller container for toggle
+        container.BackgroundTransparency = 1
+        container.LayoutOrder = currentLayoutOrder
+        currentLayoutOrder = currentLayoutOrder + 1
 
-Settings:AddColorPicker({
-	Name = "Mouse Enter",
-	Default = Compkiller.Colors.MouseEnter,
-	Callback = function(v)
-		Compkiller.Colors.MouseEnter = v;
+        local label = Instance.new("TextLabel", container)
+        label.Size = UDim2.new(0.7, 0, 1, 0)
+        label.Text = name
+        label.Font = Enum.Font.SourceSansSemibold
+        label.TextSize = 14 -- Smaller text
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.BackgroundTransparency = 1
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        applyRainbowEffect(label)
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+        local switch = Instance.new("TextButton", container)
+        switch.Size = UDim2.new(0, 35, 0, 18) -- Smaller switch
+        switch.Position = UDim2.new(1, -40, 0.5, -9) -- Adjusted position
+        switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        switch.Text = ""
+        local switchCorner = Instance.new("UICorner", switch)
+        switchCorner.CornerRadius = UDim.new(0.5, 0)
 
-Settings:AddColorPicker({
-	Name = "Block Color",
-	Default = Compkiller.Colors.BlockColor,
-	Callback = function(v)
-		Compkiller.Colors.BlockColor = v;
+        local nub = Instance.new("Frame", switch)
+        nub.Size = UDim2.new(0, 14, 0, 14) -- Smaller nub
+        nub.Position = UDim2.new(0, 2, 0.5, -7) -- Adjusted position
+        nub.BackgroundColor3 = Color3.new(1, 1, 1)
+        local nubCorner = Instance.new("UICorner", nub)
+        nubCorner.CornerRadius = UDim.new(0.5, 0)
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+        local state = false
+        switch.MouseButton1Click:Connect(function()
+            state = not state
+            callback(state)
+            local nubPos = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7) -- Adjusted nub position
+            local switchColor = state and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(70, 70, 70)
+            TweenService:Create(nub, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { Position = nubPos }):Play()
+            TweenService:Create(switch, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { BackgroundColor3 = switchColor }):Play()
+        end)
+    end
+    
+    local function createOneShotButton(name, parent, callback)
+        local btn = Instance.new("TextButton", parent)
+        btn.Size = UDim2.new(1, 0, 0, 25) -- Smaller button
+        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+        btn.BackgroundTransparency = 1
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.SourceSansSemibold
+        btn.TextSize = 14 -- Smaller text
+        btn.Text = name
+        btn.LayoutOrder = currentLayoutOrder
+        currentLayoutOrder = currentLayoutOrder + 1
+        local btnCorner = Instance.new("UICorner", btn)
+        btnCorner.CornerRadius = UDim.new(0, 4)
+        applyRainbowEffect(btn)
 
-Settings:AddColorPicker({
-	Name = "Background Color",
-	Default = Compkiller.Colors.BGDBColor,
-	Callback = function(v)
-		Compkiller.Colors.BGDBColor = v;
+        btn.MouseButton1Click:Connect(callback)
+    end
+    
+    -- CREATE UI ELEMENTS
+    -- Player Settings
+    createCategory("PLAYER SETTINGS")
+    createToggleButton("Godmode", contentFrame, setGodMode)
+    createToggleButton("Aimbot", contentFrame, toggleAimbot)
+    createToggleButton("Jump Boost", contentFrame, function(state) boostJumpEnabled = state end)
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
+    -- Visual Settings
+    createCategory("VISUALS SETTINGS")
+    createToggleButton("ESP", contentFrame, toggleESP)
+    createToggleButton("Invisible", contentFrame, setInvisible)
 
-Settings:AddColorPicker({
-	Name = "Block Background Color",
-	Default = Compkiller.Colors.BlockBackground,
-	Callback = function(v)
-		Compkiller.Colors.BlockBackground = v;
+    -- Steal Settings
+    createCategory("STEAL SETTING")
+    createOneShotButton("Start Steal", contentFrame, function()
+        if teleportGui then
+            teleportGui.Enabled = not teleportGui.Enabled
+        end
+    end)
+    
+    -- World Settings
+    createCategory("WORLD SETTINGS")
+    createOneShotButton("Change Server", contentFrame, serverHop)
+end
 
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Stroke Color",
-	Default = Compkiller.Colors.StrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.StrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "High Stroke Color",
-	Default = Compkiller.Colors.HighStrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.HighStrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Switch Color",
-	Default = Compkiller.Colors.SwitchColor,
-	Callback = function(v)
-		Compkiller.Colors.SwitchColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Line Color",
-	Default = Compkiller.Colors.LineColor,
-	Callback = function(v)
-		Compkiller.Colors.LineColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddButton({
-	Name = "Get Theme",
-	Callback = function()
-		print(Compkiller:GetTheme())
-		
-		Notifier.new({
-			Title = "Notification",
-			Content = "Copied Them Color to your clipboard",
-			Duration = 5,
-			Icon = "rbxassetid://72028320244858"
-		});
-	end,
-});
-
-ThemeTab:DrawSection({
-	Name = "UI Themes"
-}):AddDropdown({
-	Name = "Select Theme",
-	Default = "Default",
-	Values = {
-		"Default",
-		"Dark Green",
-		"Dark Blue",
-		"Purple Rose",
-		"Skeet"
-	},
-	Callback = function(v)
-		Compkiller:SetTheme(v)
-	end,
-})
-
--- Creating Config Tab --
-local ConfigUI = Window:DrawConfig({
-	Name = "Config",
-	Icon = "folder",
-	Config = ConfigManager
-});
-
-ConfigUI:Init();
+-- Initialize Menus
+createTeleportGUI()
+createV1Menu()
