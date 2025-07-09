@@ -1,10 +1,4 @@
---[[
-		Example Compkiller UI
-	
-	Author: 4lpaca
-	
-	Press Left Alt to open / close
-]]
+
 
 local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
 
@@ -18,13 +12,13 @@ local ConfigManager = Compkiller:ConfigManager({
 });
 
 -- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://120245531583106" , 2.5).yield();
+Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
 
 -- Creating Window --
 local Window = Compkiller.new({
-	Name = "COMPKILLER",
+	Name = "NEVA HUB",
 	Keybind = "LeftAlt",
-	Logo = "rbxassetid://120245531583106",
+	Logo = "rbxassetid://72028320244858",
 	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
 	TextSize = 15,
 });
@@ -35,7 +29,7 @@ Notifier.new({
 	Title = "Notification",
 	Content = "Thank you for use this script!",
 	Duration = 10,
-	Icon = "rbxassetid://120245531583106"
+	Icon = "rbxassetid://72028320244858"
 });
 
 -- Watermark --
@@ -69,19 +63,19 @@ Watermark:AddText({
 
 -- Creating Tab Category --
 Window:DrawCategory({
-	Name = "Example"
+	Name = "Farm"
 });
 
 -- Creating Tab --
 local NormalTab = Window:DrawTab({
-	Name = "Example Tab",
+	Name = "Main Tab",
 	Icon = "apple",
 	EnableScrolling = true
 });
 
 -- Creating Section --
 local NormalSection = NormalTab:DrawSection({
-	Name = "Section",
+	Name = "Section1",
 	Position = 'left'	
 });
 
@@ -91,53 +85,14 @@ local Toggle = NormalSection:AddToggle({
 	Default = false,
 	Callback = print,
 });
-
--- Add Keybind To Toggle --
-local Keybind = Toggle.Link:AddKeybind({
-	Default = "E",
-	Flag = "Option_Keybind",
-	Callback = print
-});
+---------------------
 
 -- Helper --
 Toggle.Link:AddHelper({
 	Text = "Very cool toggle!"
 })
 
--- Add Option To Toggle --
-local Toggle2 = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example2", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
 
-local Option = Toggle2.Link:AddOption()
-
-Option:AddToggle({
-	Name= "Example",
-	Flag = "Toggle_Example3",
-	Callback = print
-});
-
-do
-	local Toggle2 = NormalSection:AddToggle({
-		Name = "Risky Feature",
-		Flag = "Toggle_Example5", -- Leave it blank will not save to config
-		Default = false,
-		Risky = true,
-		Callback = print,
-	});
-
-	local Option = Toggle2.Link:AddOption()
-
-	Option:AddToggle({
-		Risky = true,
-		Name= "Risky Feature",
-		Flag = "Toggle_Example6",
-		Callback = print
-	});
-end
 
 NormalSection:AddKeybind({
 	Name = "Keybind",
@@ -156,12 +111,7 @@ NormalSection:AddSlider({
 	Callback = print
 });
 
-NormalSection:AddColorPicker({
-	Name = "ColorPicker",
-	Default = Color3.fromRGB(0, 255, 140),
-	Flag = "Color_Picker_Example",
-	Callback = print
-})
+
 
 NormalSection:AddDropdown({
 	Name = "Single Dropdown",
@@ -212,68 +162,6 @@ local DrawElements = function(Tab,Position)
 			Callback = print,
 		});
 
-		-- Add Keybind To Toggle --
-		local Keybind = Toggle.Link:AddKeybind({
-			Default = "E",
-			Callback = print
-		});
-
-		-- Add Option To Toggle --
-		local Toggle2 = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
-
-		local Option = Toggle2.Link:AddOption()
-
-		Option:AddToggle({
-			Name= "Example",
-			Callback = print
-		});
-
-		NormalSectionRight:AddKeybind({
-			Name = "Keybind",
-			Default = "LeftAlt",
-			Callback = print,
-		});
-
-		NormalSectionRight:AddSlider({
-			Name = "Slider",
-			Min = 0,
-			Max = 100,
-			Default = 50,
-			Round = 0,
-			Callback = print
-		});
-
-		NormalSectionRight:AddColorPicker({
-			Name = "ColorPicker",
-			Default = Color3.fromRGB(0, 255, 140),
-			Callback = print
-		})
-
-		NormalSectionRight:AddDropdown({
-			Name = "Single Dropdown",
-			Default = "Head",
-			Values = {"Head","Body","Arms","Legs"},
-			Callback = print
-		})
-
-		NormalSectionRight:AddDropdown({
-			Name = "Multi Dropdown",
-			Default = {"Head"},
-			Multi = true,
-			Values = {"Head","Body","Arms","Legs"},
-			Callback = print
-		})
-
-		NormalSectionRight:AddButton({
-			Name = "Button",
-			Callback = function()
-				print('PRINT!')
-			end,
-		})
 
 		NormalSectionRight:AddParagraph({
 			Title = "Paragraph",
@@ -282,39 +170,7 @@ local DrawElements = function(Tab,Position)
 	end;
 end;
 
-DrawElements(NormalTab,'right')
 
--- Single Tab --
-local SingleTab = Window:DrawTab({
-	Name = "Single Tab",
-	Icon = "banana",
-	Type = "Single"
-});
-
-DrawElements(SingleTab,'left')
-
--- Container Tab --
-local ContainerTab = Window:DrawContainerTab({
-	Name = "Extract Tabs",
-	Icon = "contact",
-});
-
-local ExtractTab = ContainerTab:DrawTab({
-	Name = "Tab 1",
-	Type = "Double"
-});
-
-local SingleExtractTab = ContainerTab:DrawTab({
-	Name = "Tab 2",
-	Type = "Single",
-	EnableScrolling = true, -- this will make tab can scrolling (recommend)
-});
-
-DrawElements(ExtractTab,"left");
-DrawElements(ExtractTab,"right");
-
-DrawElements(SingleExtractTab,"left");
-DrawElements(SingleExtractTab,"right");
 
 Window:DrawCategory({
 	Name = "Misc"
@@ -473,7 +329,7 @@ Settings:AddButton({
 			Title = "Notification",
 			Content = "Copied Them Color to your clipboard",
 			Duration = 5,
-			Icon = "rbxassetid://120245531583106"
+			Icon = "rbxassetid://72028320244858"
 		});
 	end,
 });
