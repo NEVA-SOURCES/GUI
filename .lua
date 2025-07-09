@@ -1,4 +1,15 @@
--- CREDITS SERVER V1 YOUTUBE - SERVER
+-- NEVA HUB - SERVER'
+-- Load Compkiller UI
+local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+
+-- Create Notification
+local Notifier = Compkiller.newNotify();
+
+-- Create Config Manager
+local ConfigManager = Compkiller:ConfigManager({
+	Directory = "NEVA HUB-UI",
+	Config = "NEVA HUB-Config"
+});
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -28,13 +39,14 @@ player.CharacterAdded:Connect(function()
 end)
 
 -- SCRIPT-WIDE STATES & VARIABLES
-local gui
 local godConnection, aimConnection
 local espEnabled = false
 local espConnections = {}
 local boostJumpEnabled = false
-local teleportGui
 local isTeleporting = false
+local invisibleEnabled = false
+local aimbotEnabled = false
+local godModeEnabled = false
 
 ---------------------------------------------------
 --[[           FUNCTION DEFINITIONS            ]]--
@@ -82,6 +94,8 @@ function setGodMode(on)
     if not humanoid then updateCharacter() end
     if not humanoid then return end
 
+    godModeEnabled = on
+    
     if on then
         humanoid.MaxHealth = math.huge
         humanoid.Health = math.huge
@@ -123,6 +137,8 @@ local function getClosestAimbotTarget()
 end
 
 local function toggleAimbot(state)
+    aimbotEnabled = state
+    
     if state then
         aimConnection = RunService.Heartbeat:Connect(function()
             local target = getClosestAimbotTarget()
@@ -164,6 +180,9 @@ end)
 function setInvisible(on)
     if not char then updateCharacter() end
     if not char then return end
+    
+    invisibleEnabled = on
+    
     for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
             part.Transparency = on and 1 or part.Parent:IsA("Accessory") and part.Parent.Handle.Transparency or 0
@@ -177,9 +196,9 @@ local function toggleESP(state)
     espEnabled = state
     if state then
         local function applyHighlight(character)
-            if not character or character:FindFirstChild("ServerV1ESP") then return end
+            if not character or character:FindFirstChild("NEVA HUBESP") then return end
             local h = Instance.new("Highlight")
-            h.Name = "ServerV1ESP"
+            h.Name = "NEVA HUBESP"
             h.FillColor = Color3.fromRGB(255, 50, 50)
             h.OutlineColor = Color3.new(1, 1, 1)
             h.FillTransparency = 0.5
@@ -212,7 +231,7 @@ local function toggleESP(state)
         espConnections = {}
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character then
-                local h = p.Character:FindFirstChild("ServerV1ESP")
+                local h = p.Character:FindFirstChild("NEVA HUBESP")
                 if h then h:Destroy() end
             end
         end
@@ -236,440 +255,361 @@ local function serverHop()
     if #servers > 0 then
         TeleportService:TeleportToPlaceInstance(placeId, servers[math.random(1, #servers)])
     else
-        StarterGui:SetCore("SendNotification", { Title = "Server Hop", Text = "No other servers found.", Duration = 3 })
+        Notifier.new({
+            Title = "Server Hop",
+            Content = "No other servers found!",
+            Duration = 3,
+            Icon = "rbxassetid://72028320244858"
+        });
     end
 end
 
 ---------------------------------------------------
---[[                       ]]--
+--[[              UI CREATION                  ]]--
 ---------------------------------------------------
-Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-    teleportGui.Name = "TeleportControl"
-    teleportGui.ResetOnSpawn = false
-    teleportGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    teleportGui.Enabled = false -- Start hidden
 
-    local mainFrame = Instance.new("Frame", teleportGui)
-    mainFrame.Size = UDim2.new(0, 120, 0, 80) -- Smaller frame
-    mainFrame.Position = UDim2.new(0.5, -60, 0.5, -40) -- Centered
-    mainFrame.BackgroundColor3 = Color3.fromRGB(23, 24, 28)
-    mainFrame.BackgroundTransparency = 0.3
-    mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
-    mainFrame.BorderSizePixel = 1
-    mainFrame.Active = true
-    mainFrame.Draggable = true
-    
-    local mainCorner = Instance.new("UICorner", mainFrame)
-    mainCorner.CornerRadius = UDim.new(0, 4)
+-- Loading UI
+Compkiller:Loader("rbxassetid://72028320244858", 2.5).yield();
 
-    local titleBar = Instance.new("TextLabel", mainFrame)
-    titleBar.Size = UDim2.new(1, 0, 0, 25) -- Smaller title bar
-    titleBar.BackgroundColor3 = Color3.fromRGB(15, 16, 20)
-    titleBar.BackgroundTransparency = 0
-    titleBar.Text = "TELEPORTATION"
-    titleBar.Font = Enum.Font.SourceSansBold
-    titleBar.TextSize = 16 -- Smaller text
-    titleBar.TextColor3 = Color3.new(1, 1, 1)
-    titleBar.TextXAlignment = Enum.TextXAlignment.Center
-    applyRainbowEffect(titleBar)
-    
-    local titleCorner = Instance.new("UICorner", titleBar)
-    titleCorner.CornerRadius = UDim.new(0, 4)
+-- Creating Window
+local Window = Compkiller.new({
+	Name = "NEVA HUB",
+	Keybind = "LeftAlt",
+	Logo = "rbxassetid://72028320244858",
+	Scale = Compkiller.Scale.Window,
+	TextSize = 15,
+});
 
-    local teleportButton = Instance.new("TextButton", mainFrame)
-    teleportButton.Size = UDim2.new(0.8, 0, 0, 30) -- Adjusted size to be 80% width
-    
-    -- This line is corrected to properly center the button horizontally.
-    teleportButton.Position = UDim2.new(0.1, 0, 0, titleBar.Size.Y.Offset + (mainFrame.Size.Y.Offset - titleBar.Size.Y.Offset - teleportButton.Size.Y.Offset) / 2)
-    
-    teleportButton.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-    teleportButton.TextColor3 = Color3.new(1, 1, 1)
-    teleportButton.Font = Enum.Font.SourceSansSemibold
-    teleportButton.TextSize = 14 -- Smaller text
-    teleportButton.Text = "SKY"
-    local btnCorner = Instance.new("UICorner", teleportButton)
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    applyRainbowEffect(teleportButton)
+-- Welcome Notification
+Notifier.new({
+	Title = "NEVA HUB",
+	Content = "Welcome! Script loaded successfully!",
+	Duration = 5,
+	Icon = "rbxassetid://72028320244858"
+});
 
-    teleportButton.MouseButton1Click:Connect(function()
-        isTeleporting = not isTeleporting
-        if isTeleporting then
-            teleportToSky()
-            teleportButton.Text = "GROUND" -- Change text to STOP when active
-            
-        else
-            teleportToGround()
-            teleportButton.Text = "SKY" -- Change text back to START when inactive
-            
+-- Watermark
+local Watermark = Window:Watermark();
+
+Watermark:AddText({
+	Icon = "user",
+	Text = "NEVA HUB",
+});
+
+Watermark:AddText({
+	Icon = "clock",
+	Text = Compkiller:GetDate(),
+});
+
+local Time = Watermark:AddText({
+	Icon = "timer",
+	Text = "TIME",
+});
+
+task.spawn(function()
+	while true do task.wait()
+		Time:SetText(Compkiller:GetTimeNow());
+	end
+end)
+
+Watermark:AddText({
+	Icon = "server",
+	Text = Compkiller.Version,
+});
+
+-- Creating Main Category
+Window:DrawCategory({
+	Name = "Player Features"
+});
+
+-- Creating Main Tab
+local MainTab = Window:DrawTab({
+	Name = "Player Settings",
+	Icon = "user",
+	EnableScrolling = true
+});
+
+-- Player Settings Section
+local PlayerSection = MainTab:DrawSection({
+	Name = "Player Settings",
+	Position = 'left'	
+});
+
+PlayerSection:AddToggle({
+	Name = "God Mode",
+	Flag = "GodMode",
+	Default = false,
+	Callback = function(value)
+		setGodMode(value)
+	end,
+});
+
+PlayerSection:AddToggle({
+	Name = "Aimbot",
+	Flag = "Aimbot",
+	Default = false,
+	Callback = function(value)
+		toggleAimbot(value)
+	end,
+});
+
+PlayerSection:AddToggle({
+	Name = "Jump Boost",
+	Flag = "JumpBoost",
+	Default = false,
+	Callback = function(value)
+		boostJumpEnabled = value
+	end,
+});
+
+PlayerSection:AddSlider({
+	Name = "Aimbot Range",
+	Min = 50,
+	Max = 500,
+	Default = 100,
+	Round = 0,
+	Flag = "AimbotRange",
+	Callback = function(value)
+		aimbotRange = value
+	end
+});
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local espEnabled = false
+local espConnections = {}
+local espElements = {}
+
+local function createESP(player)
+    if not player.Character or player.Character:FindFirstChild("ESP") then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP"
+    highlight.FillColor = Color3.fromRGB(255, 50, 50)
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = player.Character
+
+    local nameTag = Instance.new("BillboardGui")
+    nameTag.Size = UDim2.new(0, 100, 0, 50)
+    nameTag.Adornee = player.Character:WaitForChild("Head")
+    nameTag.AlwaysOnTop = true
+
+    local nameLabel = Instance.new("TextLabel", nameTag)
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextScaled = true
+
+    nameTag.Parent = player.Character
+
+    espElements[player.UserId] = {highlight, nameTag}
+end
+
+local function removeESP(player)
+    if espElements[player.UserId] then
+        for _, element in ipairs(espElements[player.UserId]) do
+            element:Destroy()
         end
-    end)
+        espElements[player.UserId] = nil
+    end
 end
 
-local function createV1Menu()
-    if gui then gui:Destroy() end
+local function toggleOPESP(state)
+    espEnabled = state
+    if state then
+        for _, player in pairs(Players:GetPlayers()) do
+            createESP(player)
+        end
 
-    gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-    gui.Name = "ServerV1Menu"
-    gui.ResetOnSpawn = false
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-    local mainFrame = Instance.new("Frame", gui)
-    local originalSize = UDim2.new(0, 160, 0, 280) -- Smaller original size
-    mainFrame.Size = originalSize
-    mainFrame.Position = UDim2.new(0.05, 0, 0.5, -140) -- Adjusted position
-    mainFrame.BackgroundColor3 = Color3.fromRGB(23, 24, 28)
-    mainFrame.BackgroundTransparency = 0.3
-    mainFrame.BorderColor3 = Color3.fromRGB(80, 80, 80)
-    mainFrame.BorderSizePixel = 1
-    mainFrame.Active = true
-    mainFrame.Draggable = true
-    
-    local mainCorner = Instance.new("UICorner", mainFrame)
-    mainCorner.CornerRadius = UDim.new(0, 4)
-
-    local titleBar = Instance.new("TextLabel", mainFrame)
-    titleBar.Size = UDim2.new(1, 0, 0, 30) -- Smaller height for title
-    titleBar.BackgroundColor3 = Color3.fromRGB(15, 16, 20)
-    titleBar.BackgroundTransparency = 0
-    titleBar.Text = "Server v1"
-    titleBar.Font = Enum.Font.SourceSansBold
-    titleBar.TextSize = 20 -- Slightly smaller title
-    titleBar.TextColor3 = Color3.new(1, 1, 1)
-    titleBar.TextXAlignment = Enum.TextXAlignment.Center
-    
-    local titleCorner = Instance.new("UICorner", titleBar)
-    titleCorner.CornerRadius = UDim.new(0, 4)
-
-    local contentFrame = Instance.new("ScrollingFrame", mainFrame)
-    contentFrame.Size = UDim2.new(1, -10, 1, -35) -- Adjusted size
-    contentFrame.Position = UDim2.new(0, 5, 0, 30) -- Adjusted position
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.BorderSizePixel = 0
-    contentFrame.ScrollBarThickness = 3
-    contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    
-    local listLayout = Instance.new("UIListLayout", contentFrame)
-    listLayout.Padding = UDim.new(0, 5) -- Reduced padding
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    -- MINIMIZE BUTTON
-    local minimized = false
-    local minimizeButton = Instance.new("TextButton", titleBar)
-    minimizeButton.Size = UDim2.new(0, 18, 0, 18) -- Smaller minimize button
-    minimizeButton.Position = UDim2.new(1, -22, 0.5, -9) -- Adjusted position
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    minimizeButton.Text = "–"
-    minimizeButton.Font = Enum.Font.SourceSansBold
-    minimizeButton.TextSize = 14 -- Smaller text
-    minimizeButton.TextColor3 = Color3.new(1,1,1)
-    local minimizeCorner = Instance.new("UICorner", minimizeButton)
-    minimizeCorner.CornerRadius = UDim.new(0, 3)
-    
-    minimizeButton.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        contentFrame.Visible = not minimized
-        minimizeButton.Text = minimized and "+" or "–"
-        
-        local targetSize = minimized and UDim2.new(0, 160, 0, 30) or originalSize -- Adjusted for new title bar height
-        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = targetSize}):Play()
-    end)
-
-    applyRainbowEffect(titleBar)
-    
-    local currentLayoutOrder = 1
-    local function createCategory(title)
-        local categoryLabel = Instance.new("TextLabel", contentFrame)
-        categoryLabel.Size = UDim2.new(1, 0, 0, 20) -- Smaller category label
-        categoryLabel.Text = title
-        categoryLabel.Font = Enum.Font.SourceSansBold
-        categoryLabel.TextSize = 15 -- Smaller text
-        categoryLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        categoryLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        categoryLabel.BackgroundTransparency = 0.5
-        categoryLabel.TextXAlignment = Enum.TextXAlignment.Center
-        categoryLabel.LayoutOrder = currentLayoutOrder
-        currentLayoutOrder = currentLayoutOrder + 1
-        
-        local categoryCorner = Instance.new("UICorner", categoryLabel)
-        categoryCorner.CornerRadius = UDim.new(0, 4)
-
-        applyRainbowEffect(categoryLabel)
-        return categoryLabel
-    end
-
-    local function createToggleButton(name, parent, callback)
-        local container = Instance.new("Frame", parent)
-        container.Size = UDim2.new(1, 0, 0, 25) -- Smaller container for toggle
-        container.BackgroundTransparency = 1
-        container.LayoutOrder = currentLayoutOrder
-        currentLayoutOrder = currentLayoutOrder + 1
-
-        local label = Instance.new("TextLabel", container)
-        label.Size = UDim2.new(0.7, 0, 1, 0)
-        label.Text = name
-        label.Font = Enum.Font.SourceSansSemibold
-        label.TextSize = 14 -- Smaller text
-        label.TextColor3 = Color3.new(1, 1, 1)
-        label.BackgroundTransparency = 1
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        applyRainbowEffect(label)
-
-        local switch = Instance.new("TextButton", container)
-        switch.Size = UDim2.new(0, 35, 0, 18) -- Smaller switch
-        switch.Position = UDim2.new(1, -40, 0.5, -9) -- Adjusted position
-        switch.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        switch.Text = ""
-        local switchCorner = Instance.new("UICorner", switch)
-        switchCorner.CornerRadius = UDim.new(0.5, 0)
-
-        local nub = Instance.new("Frame", switch)
-        nub.Size = UDim2.new(0, 14, 0, 14) -- Smaller nub
-        nub.Position = UDim2.new(0, 2, 0.5, -7) -- Adjusted position
-        nub.BackgroundColor3 = Color3.new(1, 1, 1)
-        local nubCorner = Instance.new("UICorner", nub)
-        nubCorner.CornerRadius = UDim.new(0.5, 0)
-
-        local state = false
-        switch.MouseButton1Click:Connect(function()
-            state = not state
-            callback(state)
-            local nubPos = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7) -- Adjusted nub position
-            local switchColor = state and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(70, 70, 70)
-            TweenService:Create(nub, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { Position = nubPos }):Play()
-            TweenService:Create(switch, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { BackgroundColor3 = switchColor }):Play()
+        espConnections[#espConnections + 1] = Players.PlayerAdded:Connect(function(newPlayer)
+            newPlayer.CharacterAdded:Connect(function()
+                if espEnabled then
+                    createESP(newPlayer)
+                end
+            end)
         end)
-    end
-    
-    local function createOneShotButton(name, parent, callback)
-        local btn = Instance.new("TextButton", parent)
-        btn.Size = UDim2.new(1, 0, 0, 25) -- Smaller button
-        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-        btn.BackgroundTransparency = 1
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.Font = Enum.Font.SourceSansSemibold
-        btn.TextSize = 14 -- Smaller text
-        btn.Text = name
-        btn.LayoutOrder = currentLayoutOrder
-        currentLayoutOrder = currentLayoutOrder + 1
-        local btnCorner = Instance.new("UICorner", btn)
-        btnCorner.CornerRadius = UDim.new(0, 4)
-        applyRainbowEffect(btn)
 
-        btn.MouseButton1Click:Connect(callback)
-    end
-    
-    -- CREATE UI ELEMENTS
-    -- Player Settings
-    createCategory("PLAYER SETTINGS")
-    createToggleButton("Godmode", contentFrame, setGodMode)
-    createToggleButton("Aimbot", contentFrame, toggleAimbot)
-    createToggleButton("Jump Boost", contentFrame, function(state) boostJumpEnabled = state end)
-
-    -- Visual Settings
-    createCategory("VISUALS SETTINGS")
-    createToggleButton("ESP", contentFrame, toggleESP)
-    createToggleButton("Invisible", contentFrame, setInvisible)
-
-    -- Steal Settings
-    createCategory("STEAL SETTING")
-    createOneShotButton("Start Steal", contentFrame, function()
-        if teleportGui then
-            teleportGui.Enabled = not teleportGui.Enabled
+        for _, player in pairs(Players:GetPlayers()) do
+            player.CharacterAdded:Connect(function()
+                if espEnabled then
+                    createESP(player)
+                end
+            end)
         end
-    end)
-    
-    -- World Settings
-    createCategory("WORLD SETTINGS")
-    createOneShotButton("Change Server", contentFrame, serverHop)
+    else
+        for _, connection in ipairs(espConnections) do
+            connection:Disconnect()
+        end
+        espConnections = {}
+        for _, player in pairs(Players:GetPlayers()) do
+            removeESP(player)
+        end
+    end
 end
 
--- Initialize Menus
-createTeleportGUI()
-createV1Menu()
 
 
+PlayerSection:AddToggle({
+    Name = "OP ESP",
+    Flag = "OPESP",
+    Default = false,
+    Callback = function(value)
+        toggleOPESP(value)
+    end,
+})
 
-
-
-
-
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
-
--- Create Notification --
-local Notifier = Compkiller.newNotify();
-
--- Create Config Mamager --
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
+-- Visual Settings Section
+local VisualSection = MainTab:DrawSection({
+	Name = "Visual Settings",
+	Position = 'right'
 });
 
--- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
-
--- Creating Window --
-local Window = Compkiller.new({
-	Name = "NEVA HUB",
-	Keybind = "LeftAlt",
-	Logo = "rbxassetid://72028320244858",
-	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
-	TextSize = 15,
+VisualSection:AddToggle({
+	Name = "ESP",
+	Flag = "ESP",
+	Default = false,
+	Callback = function(value)
+		toggleESP(value)
+	end,
 });
 
--- Notification --
-
-Notifier.new({
-	Title = "Notification",
-	Content = "Thank you for use this script!",
-	Duration = 10,
-	Icon = "rbxassetid://72028320244858"
+VisualSection:AddToggle({
+	Name = "Invisible",
+	Flag = "Invisible",
+	Default = false,
+	Callback = function(value)
+		setInvisible(value)
+	end,
 });
 
--- Watermark --
-local Watermark = Window:Watermark();
-
-Watermark:AddText({
-	Icon = "user",
-	Text = "4lpaca",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
-task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Compkiller:GetTimeNow());
-	end
-end)
-
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
-
--- Creating Tab Category --
+-- Teleport/Steal Category
 Window:DrawCategory({
-	Name = "Farm"
+	Name = "Teleport & Steal"
 });
 
--- Creating Tab --
-local NormalTab = Window:DrawTab({
-	Name = "Main Tab",
-	Icon = "apple",
+-- Teleport Tab
+local TeleportTab = Window:DrawTab({
+	Name = "Teleport",
+	Icon = "move",
 	EnableScrolling = true
 });
 
--- Creating Section --
-local NormalSection = NormalTab:DrawSection({
-	Name = "Section1",
-	Position = 'left'	
+-- Teleport Section
+local TeleportSection = TeleportTab:DrawSection({
+	Name = "Teleport Controls",
+	Position = 'left'
 });
 
-local Toggle = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
----------------------
-
--- Helper --
-Toggle.Link:AddHelper({
-	Text = "Very cool toggle!"
-})
-
-
-
-NormalSection:AddKeybind({
-	Name = "Keybind",
-	Default = "LeftAlt",
-	Flag = "Keybind_Example",
-	Callback = print,
-});
-
-NormalSection:AddSlider({
-	Name = "Slider",
-	Min = 0,
-	Max = 100,
-	Default = 50,
-	Round = 0,
-	Flag = "Slider_Example",
-	Callback = print
-});
-
-
-
-NormalSection:AddDropdown({
-	Name = "Single Dropdown",
-	Default = "Head",
-	Flag = "Single_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddDropdown({
-	Name = "Multi Dropdown",
-	Default = {"Head"},
-	Multi = true,
-	Flag = "Multi_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddButton({
-	Name = "Button",
+TeleportSection:AddButton({
+	Name = "Teleport to Sky",
 	Callback = function()
-		print('PRINT!')
+		teleportToSky()
+		Notifier.new({
+			Title = "Teleport",
+			Content = "Teleported to sky!",
+			Duration = 2,
+			Icon = "rbxassetid://72028320244858"
+		});
 	end,
-})
-
-NormalSection:AddParagraph({
-	Title = "Paragraph",
-	Content = "Very cool paragraph\nAll element in this scrtion\nwill be saved to the config!"
-})
-
-NormalSection:AddTextBox({
-	Name = "Textbox",
-	Placeholder = "Placeholder",
-	Default = "Hello, World",
-	Callback = print
-})
-
-local DrawElements = function(Tab,Position)
-	do
-		local NormalSectionRight = Tab:DrawSection({
-			Name = "Section",
-			Position = Position
-		});
-
-		local Toggle = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
-
-
-		NormalSectionRight:AddParagraph({
-			Title = "Paragraph",
-			Content = "Very cool paragraph\nAll elements in this section\nwill not be save to the config"
-		})
-	end;
-end;
-
-
-
-Window:DrawCategory({
-	Name = "Misc"
 });
 
-local SettingTab = Window:DrawTab({
+TeleportSection:AddButton({
+	Name = "Teleport to Ground",
+	Callback = function()
+		teleportToGround()
+		Notifier.new({
+			Title = "Teleport",
+			Content = "Teleported to ground!",
+			Duration = 2,
+			Icon = "rbxassetid://72028320244858"
+		});
+	end,
+});
+
+-- Steal Section
+local StealSection = TeleportTab:DrawSection({
+	Name = "Steal Features",
+	Position = 'right'
+});
+
+local stealActive = false
+StealSection:AddToggle({
+	Name = "Auto Steal",
+	Flag = "AutoSteal",
+	Default = false,
+	Callback = function(value)
+		stealActive = value
+		if value then
+			-- Auto steal loop
+			task.spawn(function()
+				while stealActive do
+					teleportToSky()
+					task.wait(3)
+					if stealActive then
+						teleportToGround()
+						task.wait(2)
+					end
+				end
+			end)
+		end
+	end,
+});
+
+StealSection:AddParagraph({
+	Title = "Auto Steal Info",
+	Content = "Enable Auto Steal to automatically\nteleport between sky and ground\nfor stealing items!"
+});
+
+-- World Category
+Window:DrawCategory({
+	Name = "World Features"
+});
+
+-- World Tab
+local WorldTab = Window:DrawTab({
+	Name = "World",
+	Icon = "globe",
+	EnableScrolling = true
+});
+
+-- World Section
+local WorldSection = WorldTab:DrawSection({
+	Name = "Server Settings",
+	Position = 'left'
+});
+
+WorldSection:AddButton({
+	Name = "Server Hop",
+	Callback = function()
+		serverHop()
+	end,
+});
+
+WorldSection:AddButton({
+	Name = "Rejoin Server",
+	Callback = function()
+		TeleportService:Teleport(game.PlaceId, player)
+	end,
+});
+
+-- Info Section
+local InfoSection = WorldTab:DrawSection({
+	Name = "Script Information",
+	Position = 'right'
+});
+
+InfoSection:AddParagraph({
+	Title = "NEVA HUB",
+	Content = "Version: 1.0\nCreated by: NEVA  \nUI: Compkiller-UI"
+});
+
+-- Settings Tab
+local SettingsTab = Window:DrawTab({
 	Icon = "settings-3",
 	Name = "Settings",
 	Type = "Single",
@@ -682,7 +622,7 @@ local ThemeTab = Window:DrawTab({
 	Type = "Single"
 });
 
-local Settings = SettingTab:DrawSection({
+local Settings = SettingsTab:DrawSection({
 	Name = "UI Settings",
 });
 
@@ -852,1093 +792,3 @@ local ConfigUI = Window:DrawConfig({
 });
 
 ConfigUI:Init();
-
-
-
-
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
-
--- Create Notification --
-local Notifier = Compkiller.newNotify();
-
--- Create Config Mamager --
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
-});
-
--- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
-
--- Creating Window --
-local Window = Compkiller.new({
-	Name = "NEVA HUB",
-	Keybind = "LeftAlt",
-	Logo = "rbxassetid://72028320244858",
-	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
-	TextSize = 15,
-});
-
--- Notification --
-
-Notifier.new({
-	Title = "Notification",
-	Content = "Thank you for use this script!",
-	Duration = 10,
-	Icon = "rbxassetid://72028320244858"
-});
-
--- Watermark --
-local Watermark = Window:Watermark();
-
-Watermark:AddText({
-	Icon = "user",
-	Text = "4lpaca",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
-task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Compkiller:GetTimeNow());
-	end
-end)
-
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
-
--- Creating Tab Category --
-Window:DrawCategory({
-	Name = "Farm"
-});
-
--- Creating Tab --
-local NormalTab = Window:DrawTab({
-	Name = "Main Tab",
-	Icon = "apple",
-	EnableScrolling = true
-});
-
--- Creating Section --
-local NormalSection = NormalTab:DrawSection({
-	Name = "Section1",
-	Position = 'left'	
-});
-
-local Toggle = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
----------------------
-
--- Helper --
-Toggle.Link:AddHelper({
-	Text = "Very cool toggle!"
-})
-
-
-
-NormalSection:AddKeybind({
-	Name = "Keybind",
-	Default = "LeftAlt",
-	Flag = "Keybind_Example",
-	Callback = print,
-});
-
-NormalSection:AddSlider({
-	Name = "Slider",
-	Min = 0,
-	Max = 100,
-	Default = 50,
-	Round = 0,
-	Flag = "Slider_Example",
-	Callback = print
-});
-
-
-
-NormalSection:AddDropdown({
-	Name = "Single Dropdown",
-	Default = "Head",
-	Flag = "Single_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddDropdown({
-	Name = "Multi Dropdown",
-	Default = {"Head"},
-	Multi = true,
-	Flag = "Multi_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddButton({
-	Name = "Button",
-	Callback = function()
-		print(\'PRINT!\')
-	end,
-})
-
-NormalSection:AddParagraph({
-	Title = "Paragraph",
-	Content = "Very cool paragraph\\nAll element in this scrtion\\nwill be saved to the config!"
-})
-
-NormalSection:AddTextBox({
-	Name = "Textbox",
-	Placeholder = "Placeholder",
-	Default = "Hello, World",
-	Callback = print
-})
-
-local DrawElements = function(Tab,Position)
-	do
-		local NormalSectionRight = Tab:DrawSection({
-			Name = "Section",
-			Position = Position
-		});
-
-		local Toggle = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
-
-
-		NormalSectionRight:AddParagraph({
-			Title = "Paragraph",
-			Content = "Very cool paragraph\\nAll elements in this section\\nwill not be save to the config"
-		})
-	end;
-end;
-
-
-
-Window:DrawCategory({
-	Name = "Misc"
-});
-
-local SettingTab = Window:DrawTab({
-	Icon = "settings-3",
-	Name = "Settings",
-	Type = "Single",
-	EnableScrolling = true
-});
-
-local ThemeTab = Window:DrawTab({
-	Icon = "paintbrush",
-	Name = "Themes",
-	Type = "Single"
-});
-
-local Settings = SettingTab:DrawSection({
-	Name = "UI Settings",
-});
-
-Settings:AddToggle({
-	Name = "Alway Show Frame",
-	Default = false,
-	Callback = function(v)
-		Window.AlwayShowTab = v;
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Highlight",
-	Default = Compkiller.Colors.Highlight,
-	Callback = function(v)
-		Compkiller.Colors.Highlight = v;
-		Compkiller:RefreshCurrentColor();
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Toggle Color",
-	Default = Compkiller.Colors.Toggle,
-	Callback = function(v)
-		Compkiller.Colors.Toggle = v;
-		
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Drop Color",
-	Default = Compkiller.Colors.DropColor,
-	Callback = function(v)
-		Compkiller.Colors.DropColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Risky",
-	Default = Compkiller.Colors.Risky,
-	Callback = function(v)
-		Compkiller.Colors.Risky = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Mouse Enter",
-	Default = Compkiller.Colors.MouseEnter,
-	Callback = function(v)
-		Compkiller.Colors.MouseEnter = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Color",
-	Default = Compkiller.Colors.BlockColor,
-	Callback = function(v)
-		Compkiller.Colors.BlockColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Background Color",
-	Default = Compkiller.Colors.BGDBColor,
-	Callback = function(v)
-		Compkiller.Colors.BGDBColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Background Color",
-	Default = Compkiller.Colors.BlockBackground,
-	Callback = function(v)
-		Compkiller.Colors.BlockBackground = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Stroke Color",
-	Default = Compkiller.Colors.StrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.StrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "High Stroke Color",
-	Default = Compkiller.Colors.HighStrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.HighStrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Switch Color",
-	Default = Compkiller.Colors.SwitchColor,
-	Callback = function(v)
-		Compkiller.Colors.SwitchColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Line Color",
-	Default = Compkiller.Colors.LineColor,
-	Callback = function(v)
-		Compkiller.Colors.LineColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddButton({
-	Name = "Get Theme",
-	Callback = function()
-		print(Compkiller:GetTheme())
-		
-		Notifier.new({
-			Title = "Notification",
-			Content = "Copied Them Color to your clipboard",
-			Duration = 5,
-			Icon = "rbxassetid://72028320244858"
-		});
-	end,
-});
-
-ThemeTab:DrawSection({
-	Name = "UI Themes"
-}):AddDropdown({
-	Name = "Select Theme",
-	Default = "Default",
-	Values = {
-		"Default",
-		"Dark Green",
-		"Dark Blue",
-		"Purple Rose",
-		"Skeet"
-	},
-	Callback = function(v)
-		Compkiller:SetTheme(v)
-	end,
-})
-
--- Creating Config Tab --
-local ConfigUI = Window:DrawConfig({
-	Name = "Config",
-	Icon = "folder",
-	Config = ConfigManager
-});
-
-ConfigUI:Init();
-
-
-
-
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
-
--- Create Notification --
-local Notifier = Compkiller.newNotify();
-
--- Create Config Mamager --
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
-});
-
--- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
-
--- Creating Window --
-local Window = Compkiller.new({
-	Name = "NEVA HUB",
-	Keybind = "LeftAlt",
-	Logo = "rbxassetid://72028320244858",
-	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
-	TextSize = 15,
-});
-
--- Notification --
-
-Notifier.new({
-	Title = "Notification",
-	Content = "Thank you for use this script!",
-	Duration = 10,
-	Icon = "rbxassetid://72028320244858"
-});
-
--- Watermark --
-local Watermark = Window:Watermark();
-
-Watermark:AddText({
-	Icon = "user",
-	Text = "4lpaca",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
-task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Compkiller:GetTimeNow());
-	end
-end)
-
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
-
--- Creating Tab Category --
-Window:DrawCategory({
-	Name = "Farm"
-});
-
--- Creating Tab --
-local NormalTab = Window:DrawTab({
-	Name = "Main Tab",
-	Icon = "apple",
-	EnableScrolling = true
-});
-
--- Creating Section --
-local NormalSection = NormalTab:DrawSection({
-	Name = "Section1",
-	Position = 'left'	
-});
-
-local Toggle = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
----------------------
-
--- Helper --
-Toggle.Link:AddHelper({
-	Text = "Very cool toggle!"
-})
-
-
-
-NormalSection:AddKeybind({
-	Name = "Keybind",
-	Default = "LeftAlt",
-	Flag = "Keybind_Example",
-	Callback = print,
-});
-
-NormalSection:AddSlider({
-	Name = "Slider",
-	Min = 0,
-	Max = 100,
-	Default = 50,
-	Round = 0,
-	Flag = "Slider_Example",
-	Callback = print
-});
-
-
-
-NormalSection:AddDropdown({
-	Name = "Single Dropdown",
-	Default = "Head",
-	Flag = "Single_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddDropdown({
-	Name = "Multi Dropdown",
-	Default = {"Head"},
-	Multi = true,
-	Flag = "Multi_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddButton({
-	Name = "Button",
-	Callback = function()
-		print(\'PRINT!\')
-	end,
-})
-
-NormalSection:AddParagraph({
-	Title = "Paragraph",
-	Content = "Very cool paragraph\\nAll element in this scrtion\\nwill be saved to the config!"
-})
-
-NormalSection:AddTextBox({
-	Name = "Textbox",
-	Placeholder = "Placeholder",
-	Default = "Hello, World",
-	Callback = print
-})
-
-local DrawElements = function(Tab,Position)
-	do
-		local NormalSectionRight = Tab:DrawSection({
-			Name = "Section",
-			Position = Position
-		});
-
-		local Toggle = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
-
-
-		NormalSectionRight:AddParagraph({
-			Title = "Paragraph",
-			Content = "Very cool paragraph\\nAll elements in this section\\nwill not be save to the config"
-		})
-	end;
-end;
-
-
-
-Window:DrawCategory({
-	Name = "Misc"
-});
-
-local SettingTab = Window:DrawTab({
-	Icon = "settings-3",
-	Name = "Settings",
-	Type = "Single",
-	EnableScrolling = true
-});
-
-local ThemeTab = Window:DrawTab({
-	Icon = "paintbrush",
-	Name = "Themes",
-	Type = "Single"
-});
-
-local Settings = SettingTab:DrawSection({
-	Name = "UI Settings",
-});
-
-Settings:AddToggle({
-	Name = "Alway Show Frame",
-	Default = false,
-	Callback = function(v)
-		Window.AlwayShowTab = v;
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Highlight",
-	Default = Compkiller.Colors.Highlight,
-	Callback = function(v)
-		Compkiller.Colors.Highlight = v;
-		Compkiller:RefreshCurrentColor();
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Toggle Color",
-	Default = Compkiller.Colors.Toggle,
-	Callback = function(v)
-		Compkiller.Colors.Toggle = v;
-		
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Drop Color",
-	Default = Compkiller.Colors.DropColor,
-	Callback = function(v)
-		Compkiller.Colors.DropColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Risky",
-	Default = Compkiller.Colors.Risky,
-	Callback = function(v)
-		Compkiller.Colors.Risky = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Mouse Enter",
-	Default = Compkiller.Colors.MouseEnter,
-	Callback = function(v)
-		Compkiller.Colors.MouseEnter = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Color",
-	Default = Compkiller.Colors.BlockColor,
-	Callback = function(v)
-		Compkiller.Colors.BlockColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Background Color",
-	Default = Compkiller.Colors.BGDBColor,
-	Callback = function(v)
-		Compkiller.Colors.BGDBColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Background Color",
-	Default = Compkiller.Colors.BlockBackground,
-	Callback = function(v)
-		Compkiller.Colors.BlockBackground = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Stroke Color",
-	Default = Compkiller.Colors.StrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.StrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "High Stroke Color",
-	Default = Compkiller.Colors.HighStrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.HighStrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Switch Color",
-	Default = Compkiller.Colors.SwitchColor,
-	Callback = function(v)
-		Compkiller.Colors.SwitchColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Line Color",
-	Default = Compkiller.Colors.LineColor,
-	Callback = function(v)
-		Compkiller.Colors.LineColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddButton({
-	Name = "Get Theme",
-	Callback = function()
-		print(Compkiller:GetTheme())
-		
-		Notifier.new({
-			Title = "Notification",
-			Content = "Copied Them Color to your clipboard",
-			Duration = 5,
-			Icon = "rbxassetid://72028320244858"
-		});
-	end,
-});
-
-ThemeTab:DrawSection({
-	Name = "UI Themes"
-}):AddDropdown({
-	Name = "Select Theme",
-	Default = "Default",
-	Values = {
-		"Default",
-		"Dark Green",
-		"Dark Blue",
-		"Purple Rose",
-		"Skeet"
-	},
-	Callback = function(v)
-		Compkiller:SetTheme(v)
-	end,
-})
-
--- Creating Config Tab --
-local ConfigUI = Window:DrawConfig({
-	Name = "Config",
-	Icon = "folder",
-	Config = ConfigManager
-});
-
-ConfigUI:Init();
-
-
-
-
-local Compkiller = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
-
--- Create Notification --
-local Notifier = Compkiller.newNotify();
-
--- Create Config Mamager --
-local ConfigManager = Compkiller:ConfigManager({
-	Directory = "Compkiller-UI",
-	Config = "Example-Configs"
-});
-
--- Loading UI (Icon <string> , Duration <number>) --
-Compkiller:Loader("rbxassetid://72028320244858" , 2.5).yield();
-
--- Creating Window --
-local Window = Compkiller.new({
-	Name = "NEVA HUB",
-	Keybind = "LeftAlt",
-	Logo = "rbxassetid://72028320244858",
-	Scale = Compkiller.Scale.Window, -- Leave blank if you want automatic scale [PC, Mobile].
-	TextSize = 15,
-});
-
--- Notification --
-
-Notifier.new({
-	Title = "Notification",
-	Content = "Thank you for use this script!",
-	Duration = 10,
-	Icon = "rbxassetid://72028320244858"
-});
-
--- Watermark --
-local Watermark = Window:Watermark();
-
-Watermark:AddText({
-	Icon = "user",
-	Text = "4lpaca",
-});
-
-Watermark:AddText({
-	Icon = "clock",
-	Text = Compkiller:GetDate(),
-});
-
-local Time = Watermark:AddText({
-	Icon = "timer",
-	Text = "TIME",
-});
-
-task.spawn(function()
-	while true do task.wait()
-		Time:SetText(Compkiller:GetTimeNow());
-	end
-end)
-
-Watermark:AddText({
-	Icon = "server",
-	Text = Compkiller.Version,
-});
-
--- Creating Tab Category --
-Window:DrawCategory({
-	Name = "Farm"
-});
-
--- Creating Tab --
-local NormalTab = Window:DrawTab({
-	Name = "Main Tab",
-	Icon = "apple",
-	EnableScrolling = true
-});
-
--- Creating Section --
-local NormalSection = NormalTab:DrawSection({
-	Name = "Section1",
-	Position = 'left'	
-});
-
-local Toggle = NormalSection:AddToggle({
-	Name = "Toggle",
-	Flag = "Toggle_Example", -- Leave it blank will not save to config
-	Default = false,
-	Callback = print,
-});
----------------------
-
--- Helper --
-Toggle.Link:AddHelper({
-	Text = "Very cool toggle!"
-})
-
-
-
-NormalSection:AddKeybind({
-	Name = "Keybind",
-	Default = "LeftAlt",
-	Flag = "Keybind_Example",
-	Callback = print,
-});
-
-NormalSection:AddSlider({
-	Name = "Slider",
-	Min = 0,
-	Max = 100,
-	Default = 50,
-	Round = 0,
-	Flag = "Slider_Example",
-	Callback = print
-});
-
-
-
-NormalSection:AddDropdown({
-	Name = "Single Dropdown",
-	Default = "Head",
-	Flag = "Single_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddDropdown({
-	Name = "Multi Dropdown",
-	Default = {"Head"},
-	Multi = true,
-	Flag = "Multi_Dropdown",
-	Values = {"Head","Body","Arms","Legs"},
-	Callback = print
-})
-
-NormalSection:AddButton({
-	Name = "Button",
-	Callback = function()
-		print(\'PRINT!\')
-	end,
-})
-
-NormalSection:AddParagraph({
-	Title = "Paragraph",
-	Content = "Very cool paragraph\\nAll element in this scrtion\\nwill be saved to the config!"
-})
-
-NormalSection:AddTextBox({
-	Name = "Textbox",
-	Placeholder = "Placeholder",
-	Default = "Hello, World",
-	Callback = print
-})
-
-local DrawElements = function(Tab,Position)
-	do
-		local NormalSectionRight = Tab:DrawSection({
-			Name = "Section",
-			Position = Position
-		});
-
-		local Toggle = NormalSectionRight:AddToggle({
-			Name = "Toggle",
-			Default = false,
-			Callback = print,
-		});
-
-
-		NormalSectionRight:AddParagraph({
-			Title = "Paragraph",
-			Content = "Very cool paragraph\\nAll elements in this section\\nwill not be save to the config"
-		})
-	end;
-end;
-
-
-
-Window:DrawCategory({
-	Name = "Misc"
-});
-
-local SettingTab = Window:DrawTab({
-	Icon = "settings-3",
-	Name = "Settings",
-	Type = "Single",
-	EnableScrolling = true
-});
-
-local ThemeTab = Window:DrawTab({
-	Icon = "paintbrush",
-	Name = "Themes",
-	Type = "Single"
-});
-
-local Settings = SettingTab:DrawSection({
-	Name = "UI Settings",
-});
-
-Settings:AddToggle({
-	Name = "Alway Show Frame",
-	Default = false,
-	Callback = function(v)
-		Window.AlwayShowTab = v;
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Highlight",
-	Default = Compkiller.Colors.Highlight,
-	Callback = function(v)
-		Compkiller.Colors.Highlight = v;
-		Compkiller:RefreshCurrentColor();
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Toggle Color",
-	Default = Compkiller.Colors.Toggle,
-	Callback = function(v)
-		Compkiller.Colors.Toggle = v;
-		
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Drop Color",
-	Default = Compkiller.Colors.DropColor,
-	Callback = function(v)
-		Compkiller.Colors.DropColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Risky",
-	Default = Compkiller.Colors.Risky,
-	Callback = function(v)
-		Compkiller.Colors.Risky = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Mouse Enter",
-	Default = Compkiller.Colors.MouseEnter,
-	Callback = function(v)
-		Compkiller.Colors.MouseEnter = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Color",
-	Default = Compkiller.Colors.BlockColor,
-	Callback = function(v)
-		Compkiller.Colors.BlockColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Background Color",
-	Default = Compkiller.Colors.BGDBColor,
-	Callback = function(v)
-		Compkiller.Colors.BGDBColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Block Background Color",
-	Default = Compkiller.Colors.BlockBackground,
-	Callback = function(v)
-		Compkiller.Colors.BlockBackground = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Stroke Color",
-	Default = Compkiller.Colors.StrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.StrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "High Stroke Color",
-	Default = Compkiller.Colors.HighStrokeColor,
-	Callback = function(v)
-		Compkiller.Colors.HighStrokeColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Switch Color",
-	Default = Compkiller.Colors.SwitchColor,
-	Callback = function(v)
-		Compkiller.Colors.SwitchColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddColorPicker({
-	Name = "Line Color",
-	Default = Compkiller.Colors.LineColor,
-	Callback = function(v)
-		Compkiller.Colors.LineColor = v;
-
-		Compkiller:RefreshCurrentColor(v);
-	end,
-});
-
-Settings:AddButton({
-	Name = "Get Theme",
-	Callback = function()
-		print(Compkiller:GetTheme())
-		
-		Notifier.new({
-			Title = "Notification",
-			Content = "Copied Them Color to your clipboard",
-			Duration = 5,
-			Icon = "rbxassetid://72028320244858"
-		});
-	end,
-});
-
-ThemeTab:DrawSection({
-	Name = "UI Themes"
-}):AddDropdown({
-	Name = "Select Theme",
-	Default = "Default",
-	Values = {
-		"Default",
-		"Dark Green",
-		"Dark Blue",
-		"Purple Rose",
-		"Skeet"
-	},
-	Callback = function(v)
-		Compkiller:SetTheme(v)
-	end,
-})
-
--- Creating Config Tab --
-local ConfigUI = Window:DrawConfig({
-	Name = "Config",
-	Icon = "folder",
-	Config = ConfigManager
-});
-
-ConfigUI:Init();
-
