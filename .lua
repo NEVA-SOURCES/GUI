@@ -506,19 +506,18 @@ VisualSection:AddToggle({
 		setInvisible(value)
 	end,
 });
-    -- Safer Legit Speed Movement (Anti-Rubberband)
+    -- Bypass Speed (Safe Version)
 
-local legitSpeedEnabled = false
-local legitSpeedValue = 5  -- Default safe value
+local bypassSpeedEnabled = false
+local bypassSpeedValue = 6
 local lastStepTime = 0
 
--- Only step when direction is present and cooldown has passed
 RunService.RenderStepped:Connect(function()
-    if legitSpeedEnabled and tick() - lastStepTime > 0.2 and root and humanoid then
+    if bypassSpeedEnabled and tick() - lastStepTime > 0.2 and root and humanoid then
         local dir = humanoid.MoveDirection
         if dir.Magnitude > 0 then
             lastStepTime = tick()
-            local moveDist = math.clamp(legitSpeedValue, 5, 15)
+            local moveDist = math.clamp(bypassSpeedValue, 4, 10)
             local target = root.Position + dir.Unit * moveDist
             local tween = TweenService:Create(root, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(target)})
             tween:Play()
@@ -526,25 +525,25 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- UI Setup
+-- Add this to your VisualSection in the UI
 VisualSection:AddToggle({
-    Name = "Legit Speed (Safe)",
-    Flag = "LegitSpeedSafeToggle",
+    Name = "Bypass Speed",
+    Flag = "BypassSpeedToggle",
     Default = false,
     Callback = function(value)
-        legitSpeedEnabled = value
+        bypassSpeedEnabled = value
     end,
 })
 
 VisualSection:AddSlider({
-    Name = "Legit Speed Value",
-    Min = 5,
-    Max = 20,
-    Default = 5,
+    Name = "Bypass Speed Value",
+    Min = 4,
+    Max = 10,
+    Default = 6,
     Round = 0,
-    Flag = "LegitSpeedSafeSlider",
+    Flag = "BypassSpeedSlider",
     Callback = function(value)
-        legitSpeedValue = value
+        bypassSpeedValue = value
     end,
 })
 -- Teleport/Steal Category
