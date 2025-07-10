@@ -506,65 +506,44 @@ VisualSection:AddToggle({
 		setInvisible(value)
 	end,
 });
--- Movement Bypass Collection for Anti-Cheat Games
+    -- Variables
+local legitSpeedEnabled = false
+local legitSpeedValue = 1.5
+local lastStep = 0
 
--- Make sure these variables exist
-local speedBypassEnabled = false
-local speedBypassValue = 2
-
--- Method 1: Manual Velocity (may be blocked)
-RunService.Heartbeat:Connect(function()
-    if speedBypassEnabled and root and humanoid and humanoid.MoveDirection.Magnitude > 0 then
-        root.Velocity = humanoid.MoveDirection * speedBypassValue * 50
-    end
-end)
-
--- Method 2: TweenService Smooth Step Movement
-function smoothSpeedMove()
-    if not root or not speedBypassEnabled then return end
-    local direction = humanoid.MoveDirection
-    if direction.Magnitude == 0 then return end
-
-    local targetPos = root.Position + (direction.Unit * speedBypassValue * 5)
-    local tween = TweenService:Create(root, TweenInfo.new(0.1), {CFrame = CFrame.new(targetPos)})
-    tween:Play()
-end
-
+-- Smooth, safe movement (step-by-step, not too fast)
 RunService.RenderStepped:Connect(function()
-    if speedBypassEnabled then
-        smoothSpeedMove()
-    end
-end)
-
--- Method 3: Short Dash with X key
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.X and speedBypassEnabled then
-        local moveVec = humanoid.MoveDirection
-        if moveVec.Magnitude > 0 then
-            root.CFrame = root.CFrame + (moveVec.Unit * speedBypassValue * 4)
+    if legitSpeedEnabled and tick() - lastStep > 0.15 and root and humanoid then
+        local dir = humanoid.MoveDirection
+        if dir.Magnitude > 0 then
+            lastStep = tick()
+            local distance = legitSpeedValue * 5 -- around 5-10 is safe
+            local targetPos = root.Position + (dir.Unit * distance)
+            local tween = TweenService:Create(root, TweenInfo.new(0.15), {CFrame = CFrame.new(targetPos)})
+            tween:Play()
         end
     end
 end)
 
--- Add to your VisualSection in UI:
+-- UI Controls (add to VisualSection)
 VisualSection:AddToggle({
-    Name = "Speed Bypass",
-    Flag = "SpeedBypass",
+    Name = "Legit Speed",
+    Flag = "LegitSpeedToggle",
     Default = false,
     Callback = function(value)
-        speedBypassEnabled = value
+        legitSpeedEnabled = value
     end,
 })
 
 VisualSection:AddSlider({
-    Name = "Speed Multiplier",
-    Min = 1,
-    Max = 10,
-    Default = 2,
+    Name = "Legit Speed Value",
+    Min = 0.5,
+    Max = 3,
+    Default = 1.5,
     Round = 1,
-    Flag = "SpeedBypassSlider",
+    Flag = "LegitSpeedSlider",
     Callback = function(value)
-        speedBypassValue = value
+        legitSpeedValue = value
     end,
 })
 -- Teleport/Steal Category
