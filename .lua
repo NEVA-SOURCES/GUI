@@ -506,18 +506,47 @@ VisualSection:AddToggle({
 		setInvisible(value)
 	end,
 });
--- Speed Bypass Variables
+-- Movement Bypass Collection for Anti-Cheat Games
+
+-- Make sure these variables exist
 local speedBypassEnabled = false
 local speedBypassValue = 2
 
--- Bypass Speed Movement
+-- Method 1: Manual Velocity (may be blocked)
 RunService.Heartbeat:Connect(function()
     if speedBypassEnabled and root and humanoid and humanoid.MoveDirection.Magnitude > 0 then
         root.Velocity = humanoid.MoveDirection * speedBypassValue * 50
     end
 end)
 
--- Add to Visual Settings Section
+-- Method 2: TweenService Smooth Step Movement
+function smoothSpeedMove()
+    if not root or not speedBypassEnabled then return end
+    local direction = humanoid.MoveDirection
+    if direction.Magnitude == 0 then return end
+
+    local targetPos = root.Position + (direction.Unit * speedBypassValue * 5)
+    local tween = TweenService:Create(root, TweenInfo.new(0.1), {CFrame = CFrame.new(targetPos)})
+    tween:Play()
+end
+
+RunService.RenderStepped:Connect(function()
+    if speedBypassEnabled then
+        smoothSpeedMove()
+    end
+end)
+
+-- Method 3: Short Dash with X key
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.X and speedBypassEnabled then
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            root.CFrame = root.CFrame + (moveVec.Unit * speedBypassValue * 4)
+        end
+    end
+end)
+
+-- Add to your VisualSection in UI:
 VisualSection:AddToggle({
     Name = "Speed Bypass",
     Flag = "SpeedBypass",
