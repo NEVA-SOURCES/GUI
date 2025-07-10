@@ -506,29 +506,30 @@ VisualSection:AddToggle({
 		setInvisible(value)
 	end,
 });
-    -- Variables
-local legitSpeedEnabled = false
-local legitSpeedValue = 1.5
-local lastStep = 0
+    -- Safer Legit Speed Movement (Anti-Rubberband)
 
--- Smooth, safe movement (step-by-step, not too fast)
+local legitSpeedEnabled = false
+local legitSpeedValue = 5  -- Default safe value
+local lastStepTime = 0
+
+-- Only step when direction is present and cooldown has passed
 RunService.RenderStepped:Connect(function()
-    if legitSpeedEnabled and tick() - lastStep > 0.15 and root and humanoid then
+    if legitSpeedEnabled and tick() - lastStepTime > 0.2 and root and humanoid then
         local dir = humanoid.MoveDirection
         if dir.Magnitude > 0 then
-            lastStep = tick()
-            local distance = legitSpeedValue * 5 -- around 5-10 is safe
-            local targetPos = root.Position + (dir.Unit * distance)
-            local tween = TweenService:Create(root, TweenInfo.new(0.15), {CFrame = CFrame.new(targetPos)})
+            lastStepTime = tick()
+            local moveDist = math.clamp(legitSpeedValue, 5, 15)
+            local target = root.Position + dir.Unit * moveDist
+            local tween = TweenService:Create(root, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {CFrame = CFrame.new(target)})
             tween:Play()
         end
     end
 end)
 
--- UI Controls (add to VisualSection)
+-- UI Setup
 VisualSection:AddToggle({
-    Name = "Legit Speed",
-    Flag = "LegitSpeedToggle",
+    Name = "Legit Speed (Safe)",
+    Flag = "LegitSpeedSafeToggle",
     Default = false,
     Callback = function(value)
         legitSpeedEnabled = value
@@ -537,11 +538,11 @@ VisualSection:AddToggle({
 
 VisualSection:AddSlider({
     Name = "Legit Speed Value",
-    Min = 0.5,
-    Max = 3,
-    Default = 1.5,
-    Round = 1,
-    Flag = "LegitSpeedSlider",
+    Min = 5,
+    Max = 20,
+    Default = 5,
+    Round = 0,
+    Flag = "LegitSpeedSafeSlider",
     Callback = function(value)
         legitSpeedValue = value
     end,
