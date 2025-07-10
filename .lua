@@ -507,6 +507,41 @@ VisualSection:AddToggle({
 	end,
 });
 
+-- Add these variables at the top with other script-wide variables:
+local speedEnabled = false
+local speedValue = 16
+
+-- Add this in the RenderStepped loop or create one:
+RunService.RenderStepped:Connect(function()
+    if speedEnabled and humanoid then
+        humanoid.WalkSpeed = speedValue
+    elseif humanoid then
+        humanoid.WalkSpeed = 16 -- Reset to default
+    end
+end)
+
+-- Add this to the VisualSection:
+VisualSection:AddToggle({
+    Name = "Speed Hack",
+    Flag = "SpeedHackToggle",
+    Default = false,
+    Callback = function(value)
+        speedEnabled = value
+    end,
+})
+
+VisualSection:AddSlider({
+    Name = "Speed",
+    Min = 16,
+    Max = 100,
+    Default = 16,
+    Round = 0,
+    Flag = "SpeedSlider",
+    Callback = function(value)
+        speedValue = value
+    end,
+})
+
 -- Teleport/Steal Category
 Window:DrawCategory({
 	Name = "Teleport & Steal"
