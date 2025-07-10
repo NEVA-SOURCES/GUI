@@ -506,42 +506,38 @@ VisualSection:AddToggle({
 		setInvisible(value)
 	end,
 });
+-- Speed Bypass Variables
+local speedBypassEnabled = false
+local speedBypassValue = 2
 
--- Add these variables at the top with other script-wide variables:
-local speedEnabled = false
-local speedValue = 16
-
--- Add this in the RenderStepped loop or create one:
-RunService.RenderStepped:Connect(function()
-    if speedEnabled and humanoid then
-        humanoid.WalkSpeed = speedValue
-    elseif humanoid then
-        humanoid.WalkSpeed = 16 -- Reset to default
+-- Bypass Speed Movement
+RunService.Heartbeat:Connect(function()
+    if speedBypassEnabled and root and humanoid and humanoid.MoveDirection.Magnitude > 0 then
+        root.Velocity = humanoid.MoveDirection * speedBypassValue * 50
     end
 end)
 
--- Add this to the VisualSection:
+-- Add to Visual Settings Section
 VisualSection:AddToggle({
-    Name = "Speed Hack",
-    Flag = "SpeedHackToggle",
+    Name = "Speed Bypass",
+    Flag = "SpeedBypass",
     Default = false,
     Callback = function(value)
-        speedEnabled = value
+        speedBypassEnabled = value
     end,
 })
 
 VisualSection:AddSlider({
-    Name = "Speed",
-    Min = 16,
-    Max = 100,
-    Default = 16,
-    Round = 0,
-    Flag = "SpeedSlider",
+    Name = "Speed Multiplier",
+    Min = 1,
+    Max = 10,
+    Default = 2,
+    Round = 1,
+    Flag = "SpeedBypassSlider",
     Callback = function(value)
-        speedValue = value
+        speedBypassValue = value
     end,
 })
-
 -- Teleport/Steal Category
 Window:DrawCategory({
 	Name = "Teleport & Steal"
