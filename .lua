@@ -2183,7 +2183,7 @@ end)
 --- Copies all RemoteEvents in the game to clipboard with full args structure
 newButton(
     "Copy All Remotes",
-    function() return "Click to copy all RemoteEvents and RemoteFunctions in the game to clipboard with full args structure.\nThis will scan the entire game and may take a few seconds for large games." end,
+    function() return "Click to copy all RemoteEvents and RemoteFunctions in the game to clipboard with full structured args tables.\nThis will scan the entire game and may take a few seconds for large games." end,
     function()
         local allRemotes = {}
         TextLabel.Text = "Searching for remotes..."
@@ -2193,8 +2193,9 @@ newButton(
             local descendants = game:GetDescendants()
             for i, descendant in ipairs(descendants) do
                 if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
-                    -- Create a formatted script for each remote with empty args table
-                    local remoteScript = "local args = {}\n\n"
+                    -- Create a formatted script for each remote with structured args table
+                    -- Use v2v to generate the full args structure like the genScript function does
+                    local remoteScript = v2v({args = {}}) .. "\n\n"
                     
                     -- Add the remote path and appropriate method call
                     if descendant:IsA("RemoteEvent") then
@@ -2232,7 +2233,7 @@ newButton(
             end
             
             setclipboard(fullScript)
-            TextLabel.Text = "Copied " .. #allRemotes .. " remotes with args structure to clipboard!"
+            TextLabel.Text = "Copied " .. #allRemotes .. " remotes with full args structure to clipboard!"
         else
             TextLabel.Text = "No remotes found!"
         end
