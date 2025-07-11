@@ -1,6 +1,4 @@
-
 -- SimpleSpy with Export Feature Injected
-
 -- Export Logs Button Injection
 newButton("Export Logs", function()
     return "Export captured RemoteEvent logs to a text file"
@@ -8,7 +6,10 @@ end, function()
     local logText = ""
     for _, log in ipairs(logs) do
         if log.Remote:IsA("RemoteEvent") then
-            logText = logText .. "Remote Name: " .. log.Name .. "\nDebugId: " .. log.DebugId .. "\nArguments: " .. v2s(log.args) .. "\nScript: " .. log.GenScript .. "\n---\n\n"
+            logText = logText .. "Remote Name: " .. log.Name .. "\n" ..
+                      "DebugId: " .. log.DebugId .. "\n" ..
+                      "Arguments: " .. v2s(log.args) .. "\n" ..
+                      "Script: " .. log.GenScript .. "\n---\n\n"
         end
     end
 
@@ -26,60 +27,6 @@ end, function()
         warn("Failed to export logs: " .. tostring(err))
     end
 end)
-
--- Append the rest of the original SimpleSpy script below
-
-
-
--- SimpleSpy with Export Feature Injected
-
---[[
-  This script includes the original SimpleSpy GUI and logic,
-  with an added Export Logs button that captures all RemoteEvent traffic
-  and saves it to DeltaWorkspace_RemoteLogs.txt
-]]
-
--- Export Logs Button Injection
-newButton("Export Logs", function()
-    return "Export captured RemoteEvent logs to a text file"
-end, function()
-    local logText = ""
-    for _, log in ipairs(logs) do
-        if log.Remote:IsA("RemoteEvent") then
-            logText ..= `Remote Name: {log.Name}\nDebugId: {log.DebugId}\nArguments: {v2s(log.args)}\nScript: {log.GenScript}\n---\n\n`
-        end
-    end
-
-    local success, err = pcall(function()
-        if writefile then
-            writefile("DeltaWorkspace_RemoteLogs.txt", logText)
-        else
-            ErrorPrompt("writefile is not supported in this executor.")
-        end
-    end)
-
-    if success then
-        warn("Logs exported to DeltaWorkspace_RemoteLogs.txt")
-    else
-        warn("Failed to export logs: " .. tostring(err))
-    end
-end)
-
-
--- Full Original Script Below
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 if getgenv().SimpleSpyExecuted and type(getgenv().SimpleSpyShutdown) == "function" then
     getgenv().SimpleSpyShutdown()
@@ -2414,3 +2361,4 @@ if configs.supersecretdevtoggle then
         NotSound:Play()
     end)
 end
+			
