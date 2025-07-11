@@ -2193,7 +2193,7 @@ newButton(
             local descendants = game:GetDescendants()
             for i, descendant in ipairs(descendants) do
                 if descendant:IsA("RemoteFunction") then
-                    -- Only include RemoteFunction invocations
+                    -- Only include RemoteFunction InvokeServer calls
                     local remoteScript = v2v({ args = {} }) .. "
 
 "
@@ -2201,6 +2201,9 @@ newButton(
 
                     table.insert(allRemotes, {
                         path   = v2s(descendant),
+                        script = remoteScript
+                    })
+                endant),
                         script = remoteScript
                     })
                 end
