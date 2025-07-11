@@ -2180,10 +2180,10 @@ function()
     TextLabel.Text = "Blacklist cleared!"
 end)
 
---- Copies all RemoteEvents in the game to clipboard with full args structure
+--- Copies all RemoteEvents in the game to clipboard with full args structure, using InvokeServer for all remotes
 newButton(
     "Copy All Remotes",
-    function() return "Click to copy all RemoteEvents and RemoteFunctions in the game to clipboard with full structured args tables.\nThis will scan the entire game and may take a few seconds for large games." end,
+    function() return "Click to copy all RemoteEvents and RemoteFunctions in the game to clipboard with full structured args tables using InvokeServer.\nThis will scan the entire game and may take a few seconds for large games." end,
     function()
         local allRemotes = {}
         TextLabel.Text = "Searching for remotes..."
@@ -2192,18 +2192,16 @@ newButton(
         local function getAllRemotes()
             local descendants = game:GetDescendants()
             for i, descendant in ipairs(descendants) do
-                if descendant:IsA("RemoteFunction") then
-                    -- Only include RemoteFunction InvokeServer calls
-                    local remoteScript = v2v({ args = {} }) .. "
-
-"
+                if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
+                    -- Create a formatted script for each remote with structured args table
+                    -- Use v2v to generate the full args structure like the genScript function does
+                    local remoteScript = v2v({args = {}}) .. "\n\n"
+                    
+                    -- Add the remote path and always use InvokeServer method call
                     remoteScript = remoteScript .. v2s(descendant) .. ":InvokeServer(unpack(args))"
-
+                    
                     table.insert(allRemotes, {
-                        path   = v2s(descendant),
-                        script = remoteScript
-                    })
-                endant),
+                        path = v2s(descendant),
                         script = remoteScript
                     })
                 end
@@ -2231,7 +2229,7 @@ newButton(
             end
             
             setclipboard(fullScript)
-            TextLabel.Text = "Copied " .. #allRemotes .. " remotes with full args structure to clipboard!"
+            TextLabel.Text = "Copied " .. #allRemotes .. " remotes with InvokeServer calls to clipboard!"
         else
             TextLabel.Text = "No remotes found!"
         end
