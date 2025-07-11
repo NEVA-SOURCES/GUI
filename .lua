@@ -2192,20 +2192,15 @@ newButton(
         local function getAllRemotes()
             local descendants = game:GetDescendants()
             for i, descendant in ipairs(descendants) do
-                if descendant:IsA("RemoteEvent") or descendant:IsA("RemoteFunction") then
-                    -- Create a formatted script for each remote with structured args table
-                    -- Use v2v to generate the full args structure like the genScript function does
-                    local remoteScript = v2v({args = {}}) .. "\n\n"
-                    
-                    -- Add the remote path and appropriate method call
-                    if descendant:IsA("RemoteEvent") then
-                        remoteScript = remoteScript .. v2s(descendant) .. ":FireServer(unpack(args))"
-                    else -- RemoteFunction
-                        remoteScript = remoteScript .. v2s(descendant) .. ":InvokeServer(unpack(args))"
-                    end
-                    
+                if descendant:IsA("RemoteFunction") then
+                    -- Only include RemoteFunction invocations
+                    local remoteScript = v2v({ args = {} }) .. "
+
+"
+                    remoteScript = remoteScript .. v2s(descendant) .. ":InvokeServer(unpack(args))"
+
                     table.insert(allRemotes, {
-                        path = v2s(descendant),
+                        path   = v2s(descendant),
                         script = remoteScript
                     })
                 end
